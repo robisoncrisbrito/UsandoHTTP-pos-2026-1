@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.gson.JsonParser
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.URL
@@ -88,7 +89,7 @@ class MainActivity : AppCompatActivity(), LocationListener {
             }
 
             try {
-                val endereco = "https://maps.googleapis.com/maps/api/geocode/xml?latlng=${latittude},${longitude}&key=${GOOGLE_API_KEY}"
+                val endereco = "https://maps.googleapis.com/maps/api/geocode/json?latlng=${latittude},${longitude}&key=${GOOGLE_API_KEY}"
 
                 val url = URL(endereco)
                 val urlConnection = url.openConnection()
@@ -106,8 +107,11 @@ class MainActivity : AppCompatActivity(), LocationListener {
                     linha = entrada.readLine()
                 }
 
+                val dado = extrairEndereco(saida.toString())
+
+
                 runOnUiThread {
-                    tvEndereco.text = saida.toString()
+                    tvEndereco.text = dado
                 }
 
 
@@ -129,6 +133,16 @@ class MainActivity : AppCompatActivity(), LocationListener {
 
 
         }.start()
+    }
+
+    fun extrairEndereco(dados: String): String {
+
+        val jsonElement = JsonParser.parseString(dados)
+        val resultado = jsonElement.asJsonObject.getAsJsonArray("results")
+
+        val formattedAddress = resultado[0].asJsonObject.get( "formatted_address").asString
+
+        return formattedAddress
     }
 
     override fun onLocationChanged(location: Location) {
