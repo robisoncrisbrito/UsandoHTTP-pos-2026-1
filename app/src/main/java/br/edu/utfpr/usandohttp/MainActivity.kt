@@ -16,6 +16,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.android.volley.Request
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
+import com.google.gson.JsonParser
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.URL
@@ -81,66 +85,38 @@ class MainActivity : AppCompatActivity(), LocationListener {
             return
         }
 
-        Thread {
-            runOnUiThread {
-                btBuscarEndereco.isEnabled = false
-                progressBar.visibility = View.VISIBLE
+        btBuscarEndereco.isEnabled = false
+        progressBar.visibility = View.VISIBLE
+
+        val endereco = "https://maps.googleapis.com/maps/api/geocode/json?latlng=${latittude},${longitude}&key=${GOOGLE_API_KEY}"
+
+        val queue = Volley.newRequestQueue(this)
+
+        val stringRequest = StringRequest(
+            Request.Method.GET, endereco,
+            { resposta ->
+                val formattedAddress = extrairEndereco(resposta )
+                tvEndereco.text = formattedAddress
+                btBuscarEndereco.isEnabled = true
+                progressBar.visibility = View.GONE
+            },
+            { erro ->
+                tvEndereco.text = erro.message
+                btBuscarEndereco.isEnabled = true
+                progressBar.visibility = View.GONE
             }
+        )
 
-            try {
-                val endereco = "https://maps.googleapis.com/maps/api/geocode/xml?latlng=${latittude},${longitude}&key=${GOOGLE_API_KEY}"
+        queue.add(stringRequest)
 
-                val url = URL(endereco)
-                val urlConnection = url.openConnection()
-
-                val inputStream = urlConnection.getInputStream() //linha bloqueante (espera)
-
-                val entrada = BufferedReader(InputStreamReader(inputStream))
-
-                val saida = StringBuilder()
-
-                var linha = entrada.readLine()
-
-                while (linha != null) {
-                    saida.append(linha)
-                    linha = entrada.readLine()
-                }
-
-                val dado = extrairEndereco(saida.toString())
-
-
-                runOnUiThread {
-                    tvEndereco.text = dado
-                }
-
-
-            } catch (e: Exception) {
-                runOnUiThread {
-                    tvEndereco.text = e.message
-                }
-            } finally {
-                runOnUiThread {
-                    btBuscarEndereco.isEnabled = true
-                    progressBar.visibility = View.GONE
-                }
-            }
-
-
-
-            //executo o código de IO
-
-
-
-        }.start()
     }
 
     fun extrairEndereco(dados: String): String {
 
-        val formattedAddress =
-            dados.substring(
-                dados.indexOf("<formatted_address>") + 19,
-                dados.indexOf("</formatted_address>")
-            )
+        val jsonElement = JsonParser.parseString(dados)
+        val resultado = jsonElement.asJsonObject.getAsJsonArray("results")
+
+        val formattedAddress = resultado[0].asJsonObject.get( "formatted_address").asString
 
         return formattedAddress
     }
