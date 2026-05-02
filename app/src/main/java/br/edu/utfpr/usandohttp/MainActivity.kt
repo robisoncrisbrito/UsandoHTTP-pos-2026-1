@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.UserManager
 import android.view.View
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
@@ -17,6 +18,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.android.volley.Request
+import com.android.volley.toolbox.ImageRequest
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.JsonParser
@@ -29,6 +31,7 @@ class MainActivity : AppCompatActivity(), LocationListener {
     private lateinit var tvLatitude: TextView
     private lateinit var tvLongitude: TextView
     private lateinit var tvEndereco: TextView
+    private lateinit var ivMapa: ImageView
     private lateinit var btBuscarEndereco: Button
     private lateinit var progressBar: ProgressBar
 
@@ -47,6 +50,7 @@ class MainActivity : AppCompatActivity(), LocationListener {
         tvLatitude = findViewById(R.id.tvLatitude)
         tvLongitude = findViewById(R.id.tvLongitude)
         tvEndereco = findViewById(R.id.tvEndereco)
+        ivMapa = findViewById(R.id.ivMapa)
         btBuscarEndereco = findViewById(R.id.btBuscarEndereco)
         progressBar = findViewById(R.id.progressBar)
 
@@ -88,7 +92,7 @@ class MainActivity : AppCompatActivity(), LocationListener {
         btBuscarEndereco.isEnabled = false
         progressBar.visibility = View.VISIBLE
 
-        val endereco = "https://maps.googleapis.com/maps/api/geocode/json?latlng=${latittude},${longitude}&key=${GOOGLE_API_KEY}"
+        val endereco = "https://maps.googleapis.com/maps/api/staticmap?center=${latittude},${longitude}&zoom=15&size=400x400&key=${GOOGLE_API_KEY}"
 
         val queue = Volley.newRequestQueue(this)
 
@@ -111,6 +115,45 @@ class MainActivity : AppCompatActivity(), LocationListener {
 
     }
 
+    fun btBuscarMapaOnClick(view: View) {
+        val latittude = tvLatitude.text.toString()
+        val longitude = tvLongitude.text.toString()
+        val GOOGLE_API_KEY = "AIzaSyDsy454kAkXofX828BEMieAQ7EbtpjohZY"
+
+        if (latittude == "Não conectado" || longitude == "Não conectado") {
+            tvEndereco.text = "Localização não encontrada"
+            return
+        }
+
+        btBuscarEndereco.isEnabled = false
+        progressBar.visibility = View.VISIBLE
+
+        val endereco = "https://maps.googleapis.com/maps/api/staticmap?center=${latittude},${longitude}&zoom=15&size=400x400&key=${GOOGLE_API_KEY}"
+
+        val queue = Volley.newRequestQueue(this)
+
+        val imageRequest = ImageRequest(
+            endereco,
+            { bitmap ->
+                tvEndereco.text = "Sucesso"
+                ivMapa.setImageBitmap(bitmap)
+                btBuscarEndereco.isEnabled = true
+                progressBar.visibility = View.GONE
+            },
+            0,
+            0,
+            ImageView.ScaleType.CENTER_CROP,
+            android.graphics.Bitmap.Config.ARGB_8888,
+            { erro ->
+                tvEndereco.text = erro.message
+                btBuscarEndereco.isEnabled = true
+                progressBar.visibility = View.GONE
+            }
+        )
+
+        queue.add(imageRequest)
+    }
+
     fun extrairEndereco(dados: String): String {
 
         val jsonElement = JsonParser.parseString(dados)
@@ -125,4 +168,5 @@ class MainActivity : AppCompatActivity(), LocationListener {
         tvLatitude.text = location.latitude.toString()
         tvLongitude.text = location.longitude.toString()
     }
+
 }
